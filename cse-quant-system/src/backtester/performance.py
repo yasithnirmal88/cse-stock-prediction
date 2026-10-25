@@ -43,6 +43,30 @@ class PerformanceAnalyzer:
     def generate_reports(self,result:dict[str,Any],output_dir:str|Path="reports")->dict[str,Path]:
         """Generate interactive charts, metrics CSV/JSON, HTML and PDF."""
         out=Path(output_dir); out.mkdir(parents=True,exist_ok=True); curve=result.get("equity_curve",result.get("equity_curves",pd.DataFrame())); pred=result.get("all_predictions",result.get("predictions",pd.DataFrame())); folds=result.get("fold_metrics",pd.DataFrame()); pos=result.get("position_sizes",result.get("positions",pd.DataFrame())); metrics=result.get("metrics",{}); imp=result.get("feature_importance",pd.DataFrame())
+        # Publish stable dashboard artifacts independently of the report output folder.
+        latest = Path(__file__).resolve().parents[2] / "reports" / "latest"
+        latest.mkdir(parents=True, exist_ok=True)
+        curve_export = curve.copy()
+        if not curve_export.empty:
+            curve_export.index.name = curve_export.index.name or "date"
+            curve_export = curve_export.reset_index()
+        curve_export.to_csv(latest / "equity_curve.csv", index=False)
+        folds.to_csv(latest / "fold_metrics.csv", index=False)
+        pred.to_csv(latest / "predictions.csv", index=False)
+        signals = pos.copy()
+        if not signals.empty and not pred.empty and {"date", "symbol"} <= set(signals) and {"date", "symbol"} <= set(pred):
+            extras = [c for c in ("probability", "actual", "forward_return", "close") if c in pred and c not in signals]
+            if extras:
+                signals = signals.merge(pred[["date", "symbol", *extras]].drop_duplicates(["date", "symbol"]),
+                                        on=["date", "symbol"], how="left")
+        signals.to_csv(latest / "signals.csv", index=False)
+        (latest / "metrics.json").write_text(json.dumps(metrics, indent=2, default=str, allow_nan=True), encoding="utf-8")
+        run_metadata = {"generated_at": pd.Timestamp.now(tz="UTC").isoformat(), "fold_count": int(len(folds)),
+                        "prediction_count": int(len(pred)),
+                        "data_start": str(pd.to_datetime(pred["date"], errors="coerce").min()) if not pred.empty and "date" in pred else None,
+                        "data_end": str(pd.to_datetime(pred["date"], errors="coerce").max()) if not pred.empty and "date" in pred else None}
+        (latest / "run_metadata.json").write_text(json.dumps(run_metadata, indent=2), encoding="utf-8")
+
         (out/"walk_forward_metrics.json").write_text(json.dumps(metrics,indent=2,default=str,allow_nan=True),encoding="utf-8"); pd.DataFrame([metrics]).to_csv(out/"walk_forward_metrics.csv",index=False)
         charts=[]
         try:
@@ -100,7 +124,7 @@ class PerformanceAnalyzer:
         if not pred.empty:
             preview=pred.copy()
             if "date" in preview: preview["date"]=pd.to_datetime(preview["date"],errors="coerce").astype(str)
-            sections.append("<section><h2>Out-of-sample predictions</h2>"+table(preview,50)+"</section>")
+            sections.append("<section><h2>Out-of-sample predictions</h2>"+table(preview,1000)+"</section>")
         if not imp.empty: sections.append("<section><h2>Feature importance</h2>"+table(imp,100)+"</section>")
         static="" if plot is not None else "<p class='note'>Static report: Plotly is unavailable; the equity chart is rendered as inline SVG.</p>"
         body="".join(sections)

@@ -109,7 +109,23 @@ class WalkForwardBacktester:
         if not predictions: raise RuntimeError("Walk-forward produced no out-of-sample predictions")
         pred=pd.DataFrame(predictions); returns=self._portfolio_returns(pred); equity=self.initial_capital*(1+returns).cumprod()
         curve=pd.DataFrame({"Strategy":equity}); positions=pd.DataFrame(sizes)
+        for entry in fold_metrics:
+            part=pred.loc[pd.to_numeric(pred["fold"],errors="coerce")==entry["fold"]]
+            fold_dates=pd.to_datetime(part["date"],errors="coerce").dropna().drop_duplicates().sort_values()
+            fold_returns=returns.loc[returns.index.isin(fold_dates)]
+            fold_equity=self.initial_capital*(1+fold_returns).cumprod()
+            summary=self.analyzer.calculate_metrics(part,portfolio_returns=fold_returns,equity=fold_equity)
+            entry.update({"total_return":summary["total_return"],"sharpe_ratio":summary["sharpe_ratio"],"max_drawdown":summary["max_drawdown"],"accuracy":summary["accuracy"],"number_of_trades":summary["number_of_trades"]})
+
         overall=self.analyzer.calculate_metrics(pred,portfolio_returns=returns,equity=equity,positions=positions.set_index("date")["position_size"])
+        for entry in fold_metrics:
+            part=pred.loc[pd.to_numeric(pred["fold"],errors="coerce")==entry["fold"]]
+            fold_dates=pd.to_datetime(part["date"],errors="coerce").dropna().drop_duplicates().sort_values()
+            fold_returns=returns.loc[returns.index.isin(fold_dates)]
+            fold_equity=self.initial_capital*(1+fold_returns).cumprod()
+            summary=self.analyzer.calculate_metrics(part,portfolio_returns=fold_returns,equity=fold_equity)
+            entry.update({"total_return":summary["total_return"],"sharpe_ratio":summary["sharpe_ratio"],"max_drawdown":summary["max_drawdown"],"accuracy":summary["accuracy"],"number_of_trades":summary["number_of_trades"]})
+
         return {"equity_curve":curve,"equity_curves":curve,"portfolio_returns":returns,"fold_metrics":pd.DataFrame(fold_metrics),"all_predictions":pred,"predictions":pred,"position_sizes":positions,"positions":positions,"feature_importance":pd.DataFrame(importances),"metrics":overall,"round_trip_cost":ROUND_TRIP_COST}
 
     def _portfolio_returns(self,pred:pd.DataFrame)->pd.Series:
