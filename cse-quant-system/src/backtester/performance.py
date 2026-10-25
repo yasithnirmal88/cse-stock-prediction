@@ -74,25 +74,56 @@ class PerformanceAnalyzer:
                 for name,g in imp.groupby("feature"): fig.add_box(y=g.importance,name=str(name))
                 charts.append(("Feature stability",fig))
         html=out/"walk_forward_report.html"
-        if plot is None:
-            body="<h1>CSE Walk-forward Report</h1>"+pd.DataFrame([metrics]).to_html(index=False)
-            if not curve.empty: body+="<h2>Equity curve data</h2>"+curve.to_html()
-            if not folds.empty: body+="<h2>Fold performance</h2>"+folds.to_html(index=False)
-            if not imp.empty: body+="<h2>Feature importance</h2>"+imp.to_html(index=False)
-            body+="<p>Static report: Plotly and chart-rendering dependencies are not installed.</p>"
-            html.write_text("<html><head><meta charset='utf-8'><title>Walk-forward report</title></head><body>"+body+"</body></html>",encoding="utf-8")
-        else:
-            body="<h1>CSE Walk-forward Report</h1>"+pd.DataFrame([metrics]).to_html(index=False)
-            for title,fig in charts: body+=f"<h2>{title}</h2>"+plot(fig,output_type="div",include_plotlyjs="cdn")
-            html.write_text("<html><head><meta charset='utf-8'></head><body>"+body+"</body></html>",encoding="utf-8")
+        import html as html_module
+        def table(frame:pd.DataFrame, max_rows:int=100)->str:
+            if frame.empty: return "<p class='empty'>No data available.</p>"
+            return frame.head(max_rows).to_html(index=False,escape=True,border=0,classes="data-table")
+        cards=[]
+        for label,key,fmt in (("Total return","total_return",".2%"),("Sharpe ratio","sharpe_ratio",".2f"),("Max drawdown","max_drawdown",".2%"),("Trades","number_of_trades","d"),("OOS observations","observations","d")):
+            value=metrics.get(key,float("nan"))
+            try: shown=format(float(value),fmt) if fmt!="d" else format(int(value),fmt)
+            except (TypeError,ValueError): shown="N/A"
+            cards.append(f"<div class='card'><span>{label}</span><strong>{shown}</strong></div>")
+        sections=["<section><h2>Key metrics</h2><div class='cards'>"+"".join(cards)+"</div>"+table(pd.DataFrame([metrics]))+"</section>"]
+        if not curve.empty:
+            equity=curve.select_dtypes(include=[np.number])
+            if not equity.empty:
+                strategy=equity.iloc[:,0].dropna(); values=strategy.to_numpy(dtype=float)
+                if len(values)>1:
+                    lo,hi=float(np.min(values)),float(np.max(values)); span=hi-lo or 1.; points=[]
+                    for idx,value in enumerate(values):
+                        x=idx*600/max(len(values)-1,1); y=130-(value-lo)*110/span; points.append(f"{x:.1f},{y:.1f}")
+                    svg=f"<svg viewBox='0 0 600 150' role='img' aria-label='Equity curve'><polyline fill='none' stroke='#2563eb' stroke-width='2' points='{' '.join(points)}'/><text x='0' y='148'>{html_module.escape(str(strategy.index[0]))}</text><text x='500' y='148'>{html_module.escape(str(strategy.index[-1]))}</text></svg>"
+                    sections.append("<section><h2>Equity curve</h2><div class='chart'>"+svg+"</div></section>")
+            sections.append("<section><h2>Equity data</h2>"+table(curve.reset_index())+"</section>")
+        if not folds.empty: sections.append("<section><h2>Fold summary</h2>"+table(folds)+"</section>")
+        if not pred.empty:
+            preview=pred.copy()
+            if "date" in preview: preview["date"]=pd.to_datetime(preview["date"],errors="coerce").astype(str)
+            sections.append("<section><h2>Out-of-sample predictions</h2>"+table(preview,50)+"</section>")
+        if not imp.empty: sections.append("<section><h2>Feature importance</h2>"+table(imp,100)+"</section>")
+        static="" if plot is not None else "<p class='note'>Static report: Plotly is unavailable; the equity chart is rendered as inline SVG.</p>"
+        body="".join(sections)
+        if plot is not None:
+            for title,fig in charts: body+=f"<section><h2>{html_module.escape(title)}</h2>"+plot(fig,output_type="div",include_plotlyjs="cdn")+"</section>"
+        document="<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>CSE Quant | Walk-forward Report</title><style>body{font:15px/1.5 system-ui,Segoe UI,sans-serif;background:#f3f6fb;color:#172033;margin:0}.wrap{max-width:1120px;margin:auto;padding:32px}header{background:#102341;color:white;padding:28px 32px;border-radius:14px;margin-bottom:22px}header h1{margin:0;font-size:28px}header p{color:#c9d7ed;margin:6px 0 0}section{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:22px;margin:18px 0;overflow:auto}h2{font-size:19px;margin:0 0 16px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}.card{background:#edf4ff;border-radius:9px;padding:14px}.card span{display:block;color:#54647a;font-size:12px}.card strong{font-size:22px}.data-table{border-collapse:collapse;width:100%;font-size:13px}.data-table th,.data-table td{padding:8px 10px;text-align:left;border-bottom:1px solid #e8edf4}.data-table th{background:#f5f8fc;color:#3d4c62}.chart svg{width:100%;max-height:260px}.note,.empty{color:#66758b;font-size:13px}footer{color:#718096;font-size:12px;padding:12px}</style></head><body><div class='wrap'><header><h1>CSE Quant System</h1><p>Walk-forward backtest report · generated from out-of-sample results</p></header>"+static+body+"<footer>Metrics are calculated by PerformanceAnalyzer; this report does not imply future performance.</footer></div></body></html>"
+        html.write_text(document,encoding="utf-8")
         pdf=out/"walk_forward_report.pdf"
         try:
             from weasyprint import HTML
-            HTML(string=html.read_text(encoding="utf-8"),base_url=str(out)).write_pdf(str(pdf))
+            HTML(string=document,base_url=str(out)).write_pdf(str(pdf))
         except Exception as exc:
             LOGGER.warning("WeasyPrint failed (%s); trying available PDF fallback",exc)
-            try:
-                if charts: charts[0][1].write_image(str(pdf),format="pdf")
-                else: _write_minimal_pdf(pdf,["CSE Walk-forward Report",*[f"{k}: {v}" for k,v in metrics.items()],f"Folds: {len(folds)}"])
-            except Exception as fallback: raise RuntimeError("PDF generation failed") from fallback
+            lines=["CSE QUANT SYSTEM - WALK-FORWARD REPORT","", "KEY METRICS"]
+            for key,value in metrics.items(): lines.append(f"{key.replace('_',' ').title()}: {value}")
+            lines.extend(["", "EQUITY SUMMARY"])
+            if not curve.empty and "Strategy" in curve:
+                s=pd.to_numeric(curve["Strategy"],errors="coerce").dropna()
+                if len(s): lines.extend([f"Points: {len(s)}",f"Start equity: {s.iloc[0]:,.2f}",f"End equity: {s.iloc[-1]:,.2f}",f"Low / high: {s.min():,.2f} / {s.max():,.2f}",f"Dates: {s.index[0]} to {s.index[-1]}"])
+            lines.extend(["", "FOLD SUMMARY"])
+            if not folds.empty:
+                lines.append(" | ".join(map(str,folds.columns)))
+                lines.extend(" | ".join(map(str,row)) for row in folds.head(12).itertuples(index=False,name=None))
+            else: lines.append("No fold summary available.")
+            _write_minimal_pdf(pdf,lines)
         return {"html":html,"pdf":pdf,"metrics_csv":out/"walk_forward_metrics.csv","metrics_json":out/"walk_forward_metrics.json"}
