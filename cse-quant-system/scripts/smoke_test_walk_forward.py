@@ -85,25 +85,34 @@ def synthetic_ohlcv(symbols: list[str], rows: int = 260) -> dict[str, pd.DataFra
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Run a small walk-forward smoke test.")
+    parser.add_argument("--data-mode", choices=("auto", "real", "synthetic"), default="auto",
+                        help="auto uses sufficient local cache data or warns and falls back; real requires cache data")
+    args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     config = load_config()
     print(f"Config loaded: {ROOT / 'config.yaml'}")
-    data = read_cached(config)
+    cached = read_cached(config)
+    data = {}
     source = "local cache"
-    if len(data) < 3:
-        print(f"Cached OHLCV found for {len(data)} selected symbols; using deterministic synthetic data.")
-        data = synthetic_ohlcv(SYMBOLS)
-        source = "deterministic synthetic OHLCV"
-    else:
-        # Restrict run to the first three configured liquid-universe names and recent data.
-        data = {s: data[s] for s in SYMBOLS if s in data}
+    if args.data_mode != "synthetic" and len(cached) >= 3:
+        data = {s: cached[s] for s in SYMBOLS if s in cached}
         end = min(f.index.max() for f in data.values())
         start = end - pd.Timedelta(days=600)
         data = {s: f.loc[start:end].copy() for s, f in data.items()}
         if min(map(len, data.values())) < 150:
-            print("Cached sample too short for folds; switching to deterministic synthetic OHLCV.")
-            data = synthetic_ohlcv(SYMBOLS)
-            source = "deterministic synthetic OHLCV"
+            data = {}
+    if args.data_mode == "real" and len(data) < 3:
+        raise RuntimeError("Real mode requires at least 3 cached symbols with 150+ recent rows each; no network fetch attempted.")
+    if not data:
+        if args.data_mode == "real":
+            raise RuntimeError("Insufficient local cache data in real mode.")
+        if args.data_mode == "auto":
+            print(f"WARNING: Cache has insufficient eligible data for 3 symbols (found {len(cached)}); using deterministic synthetic OHLCV.")
+        else:
+            print("Synthetic mode explicitly selected; using deterministic synthetic OHLCV.")
+        data = synthetic_ohlcv(SYMBOLS)
+        source = "deterministic synthetic OHLCV"
     print(f"Data source: {source}; symbols: {', '.join(data)}; rows: {min(map(len, data.values()))}–{max(map(len, data.values()))}")
 
     engineer = FeatureEngineer(config)
