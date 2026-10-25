@@ -24,6 +24,16 @@ backtest:
   initial_capital: 1000000
   benchmark: "S&P SL20"
 
+walk_forward:
+  window_type: expanding  # expanding or rolling
+  min_train_days: 504
+  test_days: 63
+  step_days: 21
+  periods_per_year: 252
+  random_seed: 42
+  initial_capital: 1000000
+  round_trip_cost: 0.0112  # fixed project-wide entry/exit costs combined
+
 logging:
   level: INFO
   log_file: reports/cse_quant.log

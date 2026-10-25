@@ -1,13 +1,28 @@
+# Core runtime and data pipeline
 pandas
 numpy
-pyyaml
+PyYAML
 requests
 beautifulsoup4
 lxml
-matplotlib
-seaborn
 tqdm
 python-dateutil
 arch
 statsmodels
+scikit-learn
+joblib
+
+# Reporting extras (install as needed)
+plotly
+kaleido
+weasyprint
+# Alternative PDF renderer; install system wkhtmltopdf separately if using pdfkit
+pdfkit
+jinja2
+matplotlib
+seaborn
+
+# Optional model backends
+xgboost
+lightgbm
 
