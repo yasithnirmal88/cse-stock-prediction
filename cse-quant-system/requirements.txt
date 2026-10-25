@@ -1,4 +1,5 @@
-# Core runtime and data pipeline
+﻿# Core application and data pipeline
+streamlit
 pandas
 numpy
 PyYAML
@@ -12,17 +13,15 @@ statsmodels
 scikit-learn
 joblib
 
-# Reporting extras (install as needed)
+# Reporting (Plotly is used when available; minimal report fallback exists)
 plotly
-kaleido
-weasyprint
-# Alternative PDF renderer; install system wkhtmltopdf separately if using pdfkit
-pdfkit
 jinja2
 matplotlib
 seaborn
+kaleido
+weasyprint
+pdfkit
 
 # Optional model backends
 xgboost
 lightgbm
-
