@@ -1,0 +1,78 @@
+# CSE universe: initial research watchlist of 25 liquid-listed equities.
+# Liquidity rankings should be independently reviewed against dated CSE turnover data.
+stocks:
+  - symbol: JKH.N0000
+    name: John Keells Holdings PLC
+    sector: Diversified Holdings
+  - symbol: COMB.N0000
+    name: Commercial Bank of Ceylon PLC
+    sector: Banking
+  - symbol: SAMP.N0000
+    name: Sampath Bank PLC
+    sector: Banking
+  - symbol: HNB.N0000
+    name: Hatton National Bank PLC
+    sector: Banking
+  - symbol: NDB.N0000
+    name: National Development Bank PLC
+    sector: Banking
+  - symbol: DIAL.N0000
+    name: Dialog Axiata PLC
+    sector: Telecommunications
+  - symbol: SLT.N0000
+    name: Sri Lanka Telecom PLC
+    sector: Telecommunications
+  - symbol: CTC.N0000
+    name: Ceylon Tobacco Company PLC
+    sector: Consumer Staples
+  - symbol: LOLC.N0000
+    name: LOLC Holdings PLC
+    sector: Diversified Financials
+  - symbol: JKH.X0000
+    name: John Keells Holdings PLC (Non-Voting)
+    sector: Diversified Holdings
+  - symbol: NTB.N0000
+    name: Nations Trust Bank PLC
+    sector: Banking
+  - symbol: DFCC.N0000
+    name: DFCC Bank PLC
+    sector: Banking
+  - symbol: PLC.N0000
+    name: People's Leasing & Finance PLC
+    sector: Finance
+  - symbol: CARG.N0000
+    name: Cargills (Ceylon) PLC
+    sector: Consumer Staples
+  - symbol: BIL.N0000
+    name: Browns Investments PLC
+    sector: Diversified Holdings
+  - symbol: RCL.N0000
+    name: Royal Ceramics Lanka PLC
+    sector: Manufacturing
+  - symbol: TJL.N0000
+    name: T J Lanka PLC
+    sector: Apparel
+  - symbol: AAIC.N0000
+    name: AIA Insurance Lanka PLC
+    sector: Insurance
+  - symbol: HASU.N0000
+    name: Hayleys PLC
+    sector: Diversified Holdings
+  - symbol: MELS.N0000
+    name: Melstacorp PLC
+    sector: Consumer Staples
+  - symbol: SOFT.N0000
+    name: Softlogic Holdings PLC
+    sector: Diversified Holdings
+  - symbol: KHC.N0000
+    name: Kelsey Developments PLC
+    sector: Property
+  - symbol: LFIN.N0000
+    name: LB Finance PLC
+    sector: Finance
+  - symbol: PABC.N0000
+    name: Pan Asia Banking Corporation PLC
+    sector: Banking
+  - symbol: VPEL.N0000
+    name: Vallibel Power Erathna PLC
+    sector: Power & Energy

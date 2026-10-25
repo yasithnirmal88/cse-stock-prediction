@@ -1,0 +1,29 @@
+project:
+  name: cse-quant-system
+  version: 0.1.0
+  description: University-level quantitative research foundation for Colombo Stock Exchange equities.
+
+data:
+  data_dir: data
+  raw_dir: data/raw
+  processed_dir: data/processed
+  cache_enabled: true
+  cache_expiry_hours: 24
+
+universe:
+  tickers: []
+  start_date: "2015-01-01"
+  end_date: null
+
+costs:
+  commission_rate_entry: 0.0056
+  commission_rate_exit: 0.0056
+  round_trip: 0.0112
+
+backtest:
+  initial_capital: 1000000
+  benchmark: "S&P SL20"
+
+logging:
+  level: INFO
+  log_file: reports/cse_quant.log
