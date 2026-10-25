@@ -1,0 +1,28 @@
+﻿# Python bytecode and test/tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
+# Virtual environments and local secrets
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Local market data and provider caches (do not commit licensed/user data)
+data/raw/
+data/processed/
+data/cache/
+data/**/*.parquet
+
+# Generated outputs: retain the reports directory, ignore generated files
+reports/**/*.csv
+reports/**/*.json
+reports/**/*.html
+reports/**/*.pdf
+reports/**/*.png
+reports/**/*.log
