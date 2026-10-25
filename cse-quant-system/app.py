@@ -1,7 +1,5 @@
-"""Interactive dashboard for viewing saved CSE walk-forward results."""
-"""Interactive dashboard for viewing saved CSE walk-forward results."""
+"""Streamlit dashboard for CSE Quant walk-forward artifacts."""
 from __future__ import annotations
-import subprocess
 import sys
 from pathlib import Path
 import pandas as pd
