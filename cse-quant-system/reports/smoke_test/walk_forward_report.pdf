@@ -13,54 +13,104 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 5 0 obj
-<< /Length 963 >>
+<< /Length 2499 >>
 stream
 BT
-/F1 10 Tf
-50 790 Td
-(CSE Walk-forward Report) Tj
+/F1 9 Tf
+42 800 Td
+(CSE QUANT SYSTEM - WALK-FORWARD REPORT) Tj
 0 -14 Td
-(observations: 135) Tj
+() Tj
 0 -14 Td
-(accuracy: 0.45925925925925926) Tj
+(KEY METRICS) Tj
 0 -14 Td
-(precision: 0.46153846153846156) Tj
+(Observations: 135) Tj
 0 -14 Td
-(recall: 0.34782608695652173) Tj
+(Accuracy: 0.45925925925925926) Tj
 0 -14 Td
-(f1: 0.39669421487603307) Tj
+(Precision: 0.46153846153846156) Tj
 0 -14 Td
-(brier_score: 0.3374558071748811) Tj
+(Recall: 0.34782608695652173) Tj
 0 -14 Td
-(total_return: -0.034192367595819784) Tj
+(F1: 0.39669421487603307) Tj
 0 -14 Td
-(cagr: -0.060702557931294976) Tj
+(Brier Score: 0.3374558071748811) Tj
 0 -14 Td
-(annualized_volatility: 0.014575382904699629) Tj
+(Total Return: -0.034192367595819784) Tj
 0 -14 Td
-(sharpe_ratio: -4.288719821809271) Tj
+(Cagr: -0.060702557931294976) Tj
 0 -14 Td
-(sortino_ratio: -4.612737074864235) Tj
+(Annualized Volatility: 0.014575382904699629) Tj
 0 -14 Td
-(max_drawdown: -0.03540305878466643) Tj
+(Sharpe Ratio: -4.288719821809271) Tj
 0 -14 Td
-(calmar_ratio: -1.7146133700059307) Tj
+(Sortino Ratio: -4.612737074864235) Tj
 0 -14 Td
-(profit_factor: 0.3162809932586848) Tj
+(Max Drawdown: -0.03540305878466643) Tj
 0 -14 Td
-(win_rate: 0.2857142857142857) Tj
+(Calmar Ratio: -1.7146133700059307) Tj
 0 -14 Td
-(average_win: 0.001004039042971514) Tj
+(Profit Factor: 0.3162809932586848) Tj
 0 -14 Td
-(average_loss: -0.0012698063612697902) Tj
+(Win Rate: 0.2857142857142857) Tj
 0 -14 Td
-(number_of_trades: 56) Tj
+(Average Win: 0.001004039042971514) Tj
 0 -14 Td
-(exposure: 0.12380952380952381) Tj
+(Average Loss: -0.0012698063612697902) Tj
 0 -14 Td
-(turnover: 0.0) Tj
+(Number Of Trades: 56) Tj
 0 -14 Td
-(Folds: 7) Tj
+(Exposure: 0.12380952380952381) Tj
+0 -14 Td
+(Turnover: 0.0) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(EQUITY SUMMARY) Tj
+0 -14 Td
+(Points: 140) Tj
+0 -14 Td
+(Start equity: 1,000,000.00) Tj
+0 -14 Td
+(End equity: 965,807.63) Tj
+0 -14 Td
+(Low / high: 965,807.63 / 1,001,255.13) Tj
+0 -14 Td
+(Dates: 2026-04-14 00:00:00 to 2026-10-26 00:00:00) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(FOLD SUMMARY) Tj
+0 -14 Td
+(fold | start | end | observations | total_return | sharpe_ratio | max_drawdown | accuracy |) Tj
+0 -14 Td
+(number_of_trades) Tj
+0 -14 Td
+(0 | 2026-04-14 00:00:00 | 2026-05-12 00:00:00 | 63 | -0.0006850901964164935 |) Tj
+0 -14 Td
+(-0.871189751311719 | -0.0019377845380118552 | 0.6190476190476191 | 12) Tj
+0 -14 Td
+(1 | 2026-05-13 00:00:00 | 2026-06-10 00:00:00 | 63 | 0.001561120012995021 |) Tj
+0 -14 Td
+(3.373556438269075 | -0.0005596791744608698 | 0.5 | 3) Tj
+0 -14 Td
+(2 | 2026-06-11 00:00:00 | 2026-07-09 00:00:00 | 63 | 0.0 | 0.0 | 0.0 | 0.0 | 0) Tj
+0 -14 Td
+(3 | 2026-07-10 00:00:00 | 2026-08-07 00:00:00 | 63 | -0.011248442665864111 |) Tj
+0 -14 Td
+(-7.3524872526667355 | -0.011248442665864111 | 0.5238095238095238 | 12) Tj
+0 -14 Td
+(4 | 2026-08-10 00:00:00 | 2026-09-07 00:00:00 | 63 | -0.002569036169112082 |) Tj
+0 -14 Td
+(-1.6775978462797752 | -0.005012946029781196 | 0.425 | 16) Tj
+0 -14 Td
+(5 | 2026-09-08 00:00:00 | 2026-10-06 00:00:00 | 63 | -0.017531170579106803 |) Tj
+0 -14 Td
+(-12.762156994242057 | -0.017531170579106803 | 0.3793103448275862 | 13) Tj
+0 -14 Td
+(6 | 2026-10-07 00:00:00 | 2026-10-26 00:00:00 | 42 | 0.0 | 0.0 | 0.0 | 0.38461538461538464 |) Tj
+0 -14 Td
+(0) Tj
 ET
 endstream
 endobj
@@ -75,5 +125,5 @@ xref
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
-1331
+2868
 %%EOF
