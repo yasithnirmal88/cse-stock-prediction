@@ -5,9 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 import pandas as pd
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
+DATA = ROOT / "data"
 
 
 def _find(folder: Path, names: tuple[str, ...]) -> Path | None:
@@ -21,6 +23,26 @@ def _read_csv(path: Path | None) -> pd.DataFrame:
         return pd.read_csv(path)
     except (OSError, ValueError, pd.errors.ParserError):
         return pd.DataFrame()
+
+
+def load_universe_names() -> dict[str, dict[str, str]]:
+    """Load symbol metadata (name, sector) from universe.yaml if available."""
+    univ_file = DATA / "universe.yaml"
+    if univ_file.is_file():
+        try:
+            doc = yaml.safe_load(univ_file.read_text(encoding="utf-8")) or {}
+            stocks = doc.get("stocks", [])
+            return {
+                s["symbol"]: {"name": s.get("name", s["symbol"]), "sector": s.get("sector", "Equities")}
+                for s in stocks if isinstance(s, dict) and "symbol" in s
+            }
+        except Exception:
+            pass
+    return {
+        "JKH.N0000": {"name": "John Keells Holdings PLC", "sector": "Diversified Holdings"},
+        "COMB.N0000": {"name": "Commercial Bank of Ceylon PLC", "sector": "Banking"},
+        "SAMP.N0000": {"name": "Sampath Bank PLC", "sector": "Banking"},
+    }
 
 
 def load_metrics(reports_dir: str | Path = REPORTS) -> dict[str, Any]:
@@ -56,14 +78,19 @@ def load_fold_metrics(reports_dir: str | Path = REPORTS) -> pd.DataFrame:
     return _load_frame(reports_dir, ("latest/fold_metrics.csv",), ("walk_forward_folds.csv", "fold_metrics.csv", "smoke_test/walk_forward_folds.csv"))
 
 
-def load_signals(reports_dir: str | Path = REPORTS) -> pd.DataFrame:
+def load_signals(reports_dir: str | Path = REPORTS, latest_only: bool = True) -> pd.DataFrame:
     frame = _load_frame(reports_dir, ("latest/signals.csv",), ("latest_signals.csv", "signals.csv"))
-    if "date" in frame:
+    if latest_only and "date" in frame:
         frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
         latest = frame["date"].max()
         if pd.notna(latest):
             frame = frame.loc[frame["date"] == latest]
     return frame
+
+
+def load_all_signals(reports_dir: str | Path = REPORTS) -> pd.DataFrame:
+    """Load full historical signals with position sizes, close prices, and probabilities."""
+    return load_signals(reports_dir, latest_only=False)
 
 
 def load_predictions(reports_dir: str | Path = REPORTS) -> pd.DataFrame:

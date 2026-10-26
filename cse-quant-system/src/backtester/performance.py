@@ -60,6 +60,8 @@ class PerformanceAnalyzer:
                 signals = signals.merge(pred[["date", "symbol", *extras]].drop_duplicates(["date", "symbol"]),
                                         on=["date", "symbol"], how="left")
         signals.to_csv(latest / "signals.csv", index=False)
+        if not imp.empty:
+            imp.to_csv(latest / "feature_importance.csv", index=False)
         (latest / "metrics.json").write_text(json.dumps(metrics, indent=2, default=str, allow_nan=True), encoding="utf-8")
         run_metadata = {"generated_at": pd.Timestamp.now(tz="UTC").isoformat(), "fold_count": int(len(folds)),
                         "prediction_count": int(len(pred)),
