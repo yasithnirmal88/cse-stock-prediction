@@ -1,0 +1,312 @@
+"""Safe readers for dashboard artifacts produced by research scripts."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+import numpy as np
+import pandas as pd
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+REPORTS = ROOT / "reports"
+DATA = ROOT / "data"
+
+
+def _find(folder: Path, names: tuple[str, ...]) -> Path | None:
+    return next((folder / name for name in names if (folder / name).is_file()), None)
+
+
+def _read_csv(path: Path | None) -> pd.DataFrame:
+    if path is None:
+        return pd.DataFrame()
+    try:
+        return pd.read_csv(path)
+    except (OSError, ValueError, pd.errors.ParserError):
+        return pd.DataFrame()
+
+
+def load_universe_names() -> dict[str, dict[str, str]]:
+    """Load symbol metadata (name, sector) from universe.yaml if available."""
+    univ_file = DATA / "universe.yaml"
+    if univ_file.is_file():
+        try:
+            doc = yaml.safe_load(univ_file.read_text(encoding="utf-8")) or {}
+            stocks = doc.get("stocks", [])
+            return {
+                s["symbol"]: {"name": s.get("name", s["symbol"]), "sector": s.get("sector", "Equities")}
+                for s in stocks if isinstance(s, dict) and "symbol" in s
+            }
+        except Exception:
+            pass
+    return {
+        "JKH.N0000": {"name": "John Keells Holdings PLC", "sector": "Diversified Holdings"},
+        "COMB.N0000": {"name": "Commercial Bank of Ceylon PLC", "sector": "Banking"},
+        "SAMP.N0000": {"name": "Sampath Bank PLC", "sector": "Banking"},
+    }
+
+
+def load_metrics(reports_dir: str | Path = REPORTS) -> dict[str, Any]:
+    folder = Path(reports_dir)
+    path = _find(folder, ("latest/metrics.json", "latest/walk_forward_metrics.json", "walk_forward_metrics.json", "smoke_test/walk_forward_metrics.json"))
+    if path:
+        try:
+            result = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(result, dict):
+                return result
+        except (OSError, json.JSONDecodeError):
+            pass
+    frame = _read_csv(_find(folder, ("latest/metrics.csv", "walk_forward_metrics.csv", "smoke_test/walk_forward_metrics.csv")))
+    return frame.iloc[0].where(pd.notna(frame.iloc[0]), None).to_dict() if not frame.empty else {}
+
+
+def _load_frame(reports_dir: str | Path, latest_names: tuple[str, ...], fallback_names: tuple[str, ...]) -> pd.DataFrame:
+    folder = Path(reports_dir)
+    frame = _read_csv(_find(folder, latest_names) or _find(folder, fallback_names))
+    return frame
+
+
+def load_equity_curve(reports_dir: str | Path = REPORTS) -> pd.DataFrame:
+    frame = _load_frame(reports_dir, ("latest/equity_curve.csv",), ("walk_forward_equity.csv", "equity_curve.csv", "smoke_test/walk_forward_equity.csv"))
+
+
+    date_col = next((c for c in ("date", "Date", "Datetime", "datetime") if c in frame), None)
+    if date_col:
+        frame[date_col] = pd.to_datetime(frame[date_col], errors="coerce")
+        frame = frame.dropna(subset=[date_col]).set_index(date_col).sort_index()
+    return frame
+
+
+def load_fold_metrics(reports_dir: str | Path = REPORTS) -> pd.DataFrame:
+    return _load_frame(reports_dir, ("latest/fold_metrics.csv",), ("walk_forward_folds.csv", "fold_metrics.csv", "smoke_test/walk_forward_folds.csv"))
+
+
+def load_signals(reports_dir: str | Path = REPORTS, latest_only: bool = True) -> pd.DataFrame:
+    frame = _load_frame(reports_dir, ("latest/signals.csv",), ("latest_signals.csv", "signals.csv"))
+    if latest_only and "date" in frame:
+        frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+        latest = frame["date"].max()
+        if pd.notna(latest):
+            frame = frame.loc[frame["date"] == latest]
+    return frame
+
+
+def load_all_signals(reports_dir: str | Path = REPORTS) -> pd.DataFrame:
+    """Load full historical signals with position sizes, close prices, and probabilities."""
+    return load_signals(reports_dir, latest_only=False)
+
+
+def get_symbol_summary(symbol: str, reports_dir: str | Path = REPORTS) -> dict[str, Any]:
+    """Extract current market state, hero indicators, and forecast metrics for a given symbol."""
+    signals = load_all_signals(reports_dir)
+    if signals.empty or "symbol" not in signals:
+        return {}
+
+    sym_df = signals[signals["symbol"].astype(str) == str(symbol)].copy()
+    if sym_df.empty:
+        return {}
+
+    if "date" in sym_df:
+        sym_df["date"] = pd.to_datetime(sym_df["date"], errors="coerce")
+        sym_df = sym_df.sort_values("date").reset_index(drop=True)
+
+    latest_row = sym_df.iloc[-1]
+    prev_row = sym_df.iloc[-2] if len(sym_df) > 1 else latest_row
+
+    curr_close = float(latest_row.get("close", 0.0))
+    prev_close = float(prev_row.get("close", curr_close))
+    pct_change = (curr_close - prev_close) / prev_close if prev_close > 0 else 0.0
+
+    prob = latest_row.get("probability")
+    prob_val = float(prob) if pd.notna(prob) else None
+
+    sig = latest_row.get("signal")
+    sig_val = float(sig) if pd.notna(sig) else 0.0
+
+    # Classify Signal Direction exactly following lab style (Buy / Hold / Sell)
+    if sig_val > 0.5:
+        signal_label = "Buy"
+        signal_class = "up"
+        signal_color = "#0f9d58"
+    elif sig_val < -0.5:
+        signal_label = "Sell"
+        signal_class = "dn"
+        signal_color = "#d93040"
+    elif prob_val is not None and prob_val > 0.55:
+        signal_label = "Buy"
+        signal_class = "up"
+        signal_color = "#0f9d58"
+    elif prob_val is not None and prob_val < 0.45:
+        signal_label = "Sell"
+        signal_class = "dn"
+        signal_color = "#d93040"
+    else:
+        signal_label = "Hold"
+        signal_class = "mut"
+        signal_color = "#667085"
+
+    confidence = round((abs(prob_val - 0.5) * 200.0) if prob_val is not None else 68.0)
+
+    # Only report statistics backed by saved out-of-sample direction predictions.
+    valid_preds = sym_df.dropna(subset=["actual"]).copy() if "actual" in sym_df else sym_df.iloc[0:0]
+    if not valid_preds.empty and "probability" in valid_preds:
+        predicted_up = pd.to_numeric(valid_preds["probability"], errors="coerce").fillna(0.5) >= 0.5
+        actual_up = pd.to_numeric(valid_preds["actual"], errors="coerce") > 0
+        hits = predicted_up == actual_up
+        hit_rate = float(hits.mean())
+        tp = int((predicted_up & actual_up).sum()); tn = int((~predicted_up & ~actual_up).sum())
+        fp = int((predicted_up & ~actual_up).sum()); fn = int((~predicted_up & actual_up).sum())
+        hit_streak = 0
+        for hit in reversed(hits.to_numpy()):
+            if not hit: break
+            hit_streak += 1
+    else:
+        hit_rate = hit_streak = None
+        tp = fp = fn = tn = None
+    vol = None
+    closes = pd.to_numeric(sym_df.get("close", pd.Series(dtype=float)), errors="coerce").dropna().to_numpy()
+    if len(closes) >= 20:
+        returns = pd.Series(closes).pct_change(fill_method=None).dropna().tail(20)
+        if len(returns) >= 10:
+            vol = float(returns.std(ddof=1) * np.sqrt(252))
+    forecast_table, fc_points = [], []
+    # This is a volatility range, not a point price forecast.
+    if vol is not None and curr_close > 0:
+        for horizon in (1, 3, 5, 10):
+            width = vol * np.sqrt(horizon / 252) * 1.28
+            forecast_table.append({"horizon": f"Day +{horizon}", "range_lo": curr_close * np.exp(-width),
+                                   "range_hi": curr_close * np.exp(width)})
+        last_date = pd.to_datetime(latest_row.get("date"), errors="coerce")
+        for horizon in range(1, 11):
+            width = vol * np.sqrt(horizon / 252) * 1.28
+            fc_points.append({"date": last_date + pd.offsets.BDay(horizon),
+                              "hi": curr_close * np.exp(width), "lo": curr_close * np.exp(-width)})
+    confidence = round(abs(prob_val - 0.5) * 200) if prob_val is not None else None
+    rmse = mae = mape = r2 = None
+    drivers = load_feature_importance(reports_dir, symbol)
+    feat_drivers = [(str(r.feature), float(r.importance)) for r in drivers.itertuples()] if not drivers.empty else []
+    sentiment_score = sentiment_label = None
+    recent_closes = pd.to_numeric(sym_df["close"], errors="coerce").tail(20).dropna()
+    day_low = float(recent_closes.min()) if not recent_closes.empty else None
+    day_high = float(recent_closes.max()) if not recent_closes.empty else None
+
+    univ_names = load_universe_names()
+    stock_info = univ_names.get(symbol, {"name": symbol, "sector": "Equities"})
+
+    return {
+        "symbol": symbol,
+        "name": stock_info["name"],
+        "sector": stock_info["sector"],
+        "date": str(latest_row.get("date", ""))[:10],
+        "close": curr_close,
+        "prev_close": prev_close,
+        "change_pct": pct_change,
+        "signal_label": signal_label,
+        "signal_class": signal_class,
+        "signal_color": signal_color,
+        "probability": prob_val,
+        "confidence": confidence,
+        "target_10d": None,
+        "move_10d_pct": None,
+        "forecast_table": forecast_table,
+        "fc_points": fc_points,
+        "hit_rate": hit_rate,
+        "hit_streak": hit_streak,
+        "volatility": vol,
+        "day_low": day_low,
+        "day_high": day_high,
+        "sentiment_score": sentiment_score,
+        "sentiment_label": sentiment_label,
+        "feat_drivers": feat_drivers,
+        "metrics": {
+            "rmse": rmse,
+            "mae": mae,
+            "mape": mape,
+            "r2": r2,
+            "hit_rate": hit_rate,
+            "streak": hit_streak,
+        },
+        "cm": [tp, fp, fn, tn],
+        "history": sym_df,
+    }
+
+
+def load_predictions(reports_dir: str | Path = REPORTS) -> pd.DataFrame:
+    return _load_frame(reports_dir, ("latest/predictions.csv",), ("walk_forward_predictions.csv", "predictions.csv", "smoke_test/walk_forward_predictions.csv"))
+
+
+
+
+def load_ohlcv(reports_dir: str | Path = REPORTS) -> pd.DataFrame:
+    """Load exported historical OHLCV used by the latest walk-forward run."""
+    frame = _read_csv(_find(Path(reports_dir), ("latest/ohlcv.csv",)))
+    if "date" in frame:
+        frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+    return frame
+
+
+def add_chart_indicators(frame: pd.DataFrame) -> pd.DataFrame:
+    """Calculate chart indicators using the same definitions as model features."""
+    from src.features import FeatureEngineer
+
+    renamed = frame.rename(columns={c: c.title() for c in frame.columns})
+    engineered = FeatureEngineer().create_features(renamed)
+    for feature, chart_name in (("SMA_20", "sma20"), ("SMA_50", "sma50"),
+                                ("RSI_14", "rsi"), ("MACD", "macd"),
+                                ("MACD_signal", "macd_signal"),
+                                ("MACD_histogram", "macd_hist")):
+        if feature in engineered:
+            engineered[chart_name] = engineered[feature]
+    close = pd.to_numeric(engineered["Close"], errors="coerce")
+    mean = close.rolling(20, min_periods=20).mean()
+    std = close.rolling(20, min_periods=20).std(ddof=0)
+    engineered["bb_upper"], engineered["bb_lower"] = mean + 2 * std, mean - 2 * std
+    return engineered.rename(columns={c: c.lower() for c in ("Open", "High", "Low", "Close", "Volume")})
+
+
+def load_run_metadata(reports_dir: str | Path = REPORTS) -> dict[str, Any]:
+    path = _find(Path(reports_dir), ("latest/run_metadata.json",))
+    if path:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
+        except (OSError, json.JSONDecodeError):
+            pass
+    return {}
+
+
+    path = _find(Path(reports_dir), ("latest/run_metadata.json",))
+    if path:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
+        except (OSError, json.JSONDecodeError):
+            pass
+    return {}
+
+
+def model_status(reports_dir: str | Path = REPORTS) -> dict[str, Any]:
+    folder = Path(reports_dir)
+    metrics_path = _find(folder, ("latest/metrics.json", "latest/walk_forward_metrics.json", "walk_forward_metrics.json", "smoke_test/walk_forward_metrics.json"))
+    metadata = load_run_metadata(folder)
+    pred = load_predictions(folder)
+    dates = pd.to_datetime(pred["date"], errors="coerce").dropna() if "date" in pred else pd.Series(dtype="datetime64[ns]")
+    return {"metrics_available": metrics_path is not None, "metrics_path": str(metrics_path) if metrics_path else None,
+            "last_run": metadata.get("generated_at") or (metrics_path.stat().st_mtime if metrics_path else None),
+            "signals_available": not load_signals(folder).empty,
+            "fold_count": metadata.get("fold_count", len(load_fold_metrics(folder))),
+            "data_start": metadata.get("data_start") or (str(dates.min()) if len(dates) else None),
+            "data_end": metadata.get("data_end") or (str(dates.max()) if len(dates) else None),
+            "prediction_count": metadata.get("prediction_count", len(pred))}
+
+
+
+def load_feature_importance(reports_dir: str | Path = REPORTS, symbol: str | None = None) -> pd.DataFrame:
+    """Load mean unsigned model feature importance across walk-forward folds."""
+    del symbol
+    frame = _read_csv(_find(Path(reports_dir), ("latest/feature_importance.csv",)))
+    if frame.empty or not {"feature", "importance"} <= set(frame.columns):
+        return pd.DataFrame()
+    frame["importance"] = pd.to_numeric(frame["importance"], errors="coerce")
+    return (frame.groupby("feature", as_index=False)["importance"].mean()
+            .sort_values("importance", ascending=False).head(8).reset_index(drop=True))

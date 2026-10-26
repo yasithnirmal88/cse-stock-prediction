@@ -1,10 +1,27 @@
+﻿# Core application and data pipeline
+streamlit
 pandas
 numpy
-pyyaml
+PyYAML
 requests
 beautifulsoup4
 lxml
-matplotlib
-seaborn
 tqdm
 python-dateutil
+arch
+statsmodels
+scikit-learn
+joblib
+
+# Reporting (Plotly is used when available; minimal report fallback exists)
+plotly
+jinja2
+matplotlib
+seaborn
+kaleido
+weasyprint
+pdfkit
+
+# Optional model backends
+xgboost
+lightgbm

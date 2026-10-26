@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Market forecast lab</title>
+<style>
+:root{--bg:#f4f6f8;--panel:#fff;--ink:#101828;--mut:#667085;--line:#e3e7ec;--up:#0f9d58;--dn:#d93040;--acc:#3856d6;--grid:#eef0f3;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0f14;--panel:#131920;--ink:#e8edf3;--mut:#8896a7;--line:#232d3a;--up:#2bd47d;--dn:#ff5468;--acc:#7b94ff;--grid:#1b232d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b0f14;--panel:#131920;--ink:#e8edf3;--mut:#8896a7;--line:#232d3a;--up:#2bd47d;--dn:#ff5468;--acc:#7b94ff;--grid:#1b232d;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.up{color:var(--up)}.dn{color:var(--dn)}.mut{color:var(--mut)}
+.top{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-size:19px;margin:0;font-weight:700}h2{font-size:14px;margin:0 0 10px;font-weight:650}
+.sub{margin:0;color:var(--mut);font-size:12px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--mut);padding:6px 11px;font:inherit;cursor:pointer}
+.seg button.on{background:var(--ink);color:var(--panel)}
+select,.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,tr:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.live{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:12px}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--up);animation:p 1.6s infinite}
+@keyframes p{50%{opacity:.25}}@media(prefers-reduced-motion:reduce){.live i{animation:none}}
+main{padding:16px 20px;max-width:1500px;margin:0 auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.kpi b{display:block;font-size:22px;line-height:1.2;margin-top:2px}
+.kpi span{font-size:12px;color:var(--mut)}
+.chip{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:13px}
+.chip.up{background:color-mix(in srgb,var(--up) 16%,transparent)}.chip.dn{background:color-mix(in srgb,var(--dn) 16%,transparent)}.chip.mut{background:var(--grid)}
+.g2{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:12px;margin-bottom:12px}
+.g2b{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:8px}
+.bar label{font-size:12px;color:var(--mut);display:flex;gap:4px;align-items:center}
+canvas{display:block;width:100%}
+#main{height:360px}#rsi{height:88px}#macd{height:100px}#pva,#eq{height:200px}#gauge{height:120px}
+table{width:100%;border-collapse:collapse}th{font-weight:500;color:var(--mut);text-align:right;padding:4px 6px;font-size:12px}td{padding:7px 6px;text-align:right;border-top:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+tr[tabindex]{cursor:pointer}tr[tabindex]:hover{background:var(--grid)}
+.fb{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;margin:5px 0;font-size:12px}
+.fb div.t{position:relative;height:10px;background:var(--grid);border-radius:3px}
+.fb div.t::before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--mut)}
+.fb div.t i{position:absolute;top:0;bottom:0;border-radius:3px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats div{background:var(--grid);border-radius:8px;padding:8px}.stats b{display:block;font-size:16px}.stats span{font-size:11px;color:var(--mut)}
+.cm{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;margin-top:10px;text-align:center;font-size:12px;align-items:center}
+.cm div.c{padding:10px 4px;border-radius:6px;font-weight:700;font-size:15px}
+.heat{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-flow:dense;gap:4px}
+.heat div{border-radius:6px;padding:10px;min-height:64px;display:flex;flex-direction:column;justify-content:space-between;font-size:12px}
+.heat .w2{grid-column:span 2}.heat b{font-size:15px}
+.foot{color:var(--mut);font-size:12px;margin:14px 0 4px}
+@media(max-width:980px){.g2{grid-template-columns:minmax(0,1fr)}main{padding:12px}.heat{grid-template-columns:repeat(3,1fr)}}
+</style></head><body>
+<header class="top"><div><h1>Market forecast lab</h1><p class="sub">Model-driven price outlook, built on simulated data</p></div>
+<div class="ctl"><div class="seg" id="tick"></div><select id="mod" aria-label="Model"></select><button class="btn" id="th">Switch theme</button><span class="live"><i></i>Live</span></div></header>
+<main>
+<section class="kpis" id="kpis"></section>
+<div class="g2"><div class="col">
+<article class="card"><div class="bar"><div><b id="ttl"></b> <span id="ohlc" class="mut"></span></div>
+<div class="ctl"><div class="seg" id="tf"></div><label><input type="checkbox" id="oma" checked>Averages</label><label><input type="checkbox" id="obb" checked>Bands</label><label><input type="checkbox" id="ofc" checked>Forecast</label><label><input type="checkbox" id="ovo" checked>Volume</label></div></div>
+<canvas id="main"></canvas><canvas id="rsi"></canvas><canvas id="macd"></canvas></article>
+<div class="g2b"><article class="card"><h2>Predicted vs actual close, last 40 days</h2><canvas id="pva"></canvas><p class="sub">Dots: green when the model called the direction, red when it missed.</p></article>
+<article class="card"><h2>Strategy backtest, last 120 days</h2><canvas id="eq"></canvas><div class="stats" id="bt" style="margin-top:8px"></div></article></div>
+</div>
+<div class="col">
+<article class="card"><h2>10-day price forecast</h2><table id="fct"></table></article>
+<article class="card"><h2>Market sentiment</h2><canvas id="gauge"></canvas><div id="sent" style="text-align:center;font-weight:700;font-size:18px"></div></article>
+<article class="card"><h2>What is moving the forecast</h2><div id="feat"></div><p class="sub">Right of centre pushes the forecast up, left pushes it down.</p></article>
+<article class="card"><h2>Model accuracy</h2><div class="stats" id="met"></div><div class="cm" id="cm"></div></article>
+</div></div>
+<div class="g2b"><article class="card"><h2>Sector heatmap, today</h2><div class="heat" id="heat"></div></article>
+<article class="card"><h2>Watchlist</h2><table id="wl"></table></article></div>
+<p class="foot">All prices are randomly generated for demonstration. Forecasts and signals are not investment advice.</p>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const SYM={AAPL:[189,.017,.0004,11,'Apple'],NVDA:[880,.03,.0009,23,'Nvidia'],TSLA:[245,.034,0,37,'Tesla'],MSFT:[415,.014,.0004,5,'Microsoft'],AMZN:[178,.019,.0005,71,'Amazon'],META:[480,.024,.0006,89,'Meta']};
+const MODELS={Ensemble:{f:1,q:.3,conf:78},LSTM:{f:1.15,q:.26,conf:71},XGBoost:{f:.85,q:.28,conf:74},Prophet:{f:.7,q:.16,conf:63}};
+const S={sym:'NVDA',model:'Ensemble',win:70,ma:1,bb:1,fc:1,vol:1,hover:null};
+let C={},A,cache={};
+function colors(){const s=getComputedStyle(document.documentElement);['panel','ink','mut','line','up','dn','acc','grid'].forEach(k=>C[k]=s.getPropertyValue('--'+k).trim())}
+const rng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const gauss=r=>Math.sqrt(-2*Math.log(r()+1e-9))*Math.cos(6.2832*r());
+const fmt=(v,d=2)=>v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pc=v=>(v>=0?'+':'')+fmt(v*100)+'%',cls=v=>v>=0?'up':'dn',clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const dstr=d=>d.toLocaleString('en-US',{month:'short',day:'numeric'});
+function gen(s){if(cache[s])return cache[s];const[p0,vol,dr,seed]=SYM[s],r=rng(seed*7919),N=220;const dt=[];let d=new Date();while(dt.length<N){if(d.getDay()%6)dt.unshift(new Date(d));d=new Date(d-864e5)}
+let p=p0*.8,reg=0;const b=[];for(let i=0;i<N;i++){if(i%40==0)reg=gauss(r)*.0012;const o=p*(1+gauss(r)*vol*.3),c=o*Math.exp(dr+reg+gauss(r)*vol),h=Math.max(o,c)*(1+Math.abs(gauss(r))*vol*.35),l=Math.min(o,c)*(1-Math.abs(gauss(r))*vol*.35);b.push({d:dt[i],o,h,l,c,v:(1+Math.abs(c/o-1)*40)*(5e6+r()*3e6)});p=c}return cache[s]=b}
+const sma=(a,n)=>a.map((_,i)=>i<n-1?null:a.slice(i-n+1,i+1).reduce((x,y)=>x+y)/n);
+const ema=(a,n)=>{const k=2/(n+1);let e=a[0];return a.map((x,i)=>i?(e=x*k+e*(1-k)):e)};
+const sdv=(a,n)=>a.map((_,i)=>{if(i<n-1)return null;const s=a.slice(i-n+1,i+1),m=s.reduce((x,y)=>x+y)/n;return Math.sqrt(s.reduce((x,y)=>x+(y-m)**2,0)/n)});
+function rsi(a,n=14){let g=0,l=0;return a.map((x,i)=>{if(!i)return null;const d=x-a[i-1];if(i<=n){g+=Math.max(d,0);l+=Math.max(-d,0);if(i<n)return null;g/=n;l/=n}else{g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n}return 100-100/(1+g/(l||1e-9))})}
+function analyze(sym,mn){const b=gen(sym),n=b.length,cl=b.map(k=>k.c),M=MODELS[mn],vol=SYM[sym][1],seed=SYM[sym][3];
+const e12=ema(cl,12),e26=ema(cl,26),macd=e12.map((v,i)=>v-e26[i]),sg=ema(macd,9),hist=macd.map((v,i)=>v-sg[i]),s20=sma(cl,20),s50=sma(cl,50),sd=sdv(cl,20),R=rsi(cl),bu=s20.map((v,i)=>v&&v+2*sd[i]),bl=s20.map((v,i)=>v&&v-2*sd[i]);
+const last=cl[n-1],rv=R[n-1],mom=(e12[n-1]-e26[n-1])/last,dr=clamp((mom*.12-(rv-50)/50*.0025)*M.f,-.012,.012);
+const fc=[];for(let k=1;k<=10;k++){const m=last*Math.exp(dr*k),w=vol*Math.sqrt(k)*1.28*(1.15-M.q*.4);fc.push({m,hi:m*Math.exp(w),lo:m*Math.exp(-w)})}
+const pr=fc[9].m/last-1,H=120,r=rng(seed*131+mn.length*17),pred=[],act=[],prev=[];
+for(let i=n-H;i<n;i++){const ar=cl[i]/cl[i-1]-1;pred.push(cl[i-1]*(1+M.q*ar+(1-M.q)*gauss(r)*vol*.9));act.push(cl[i]);prev.push(cl[i-1])}
+const mean=act.reduce((a,v)=>a+v)/H;let se=0,ae=0,pe=0,st=0,tp=0,tn=0,fp=0,fn=0,wins=0,trades=0;const eq=[100],bh=[100],rets=[],hit=[];
+act.forEach((a,i)=>{const e=pred[i]-a;se+=e*e;ae+=Math.abs(e);pe+=Math.abs(e/a);st+=(a-mean)**2;const pu=pred[i]>prev[i],au=a>prev[i];hit.push(pu==au);if(pu&&au)tp++;else if(!pu&&!au)tn++;else if(pu)fp++;else fn++;const ret=a/prev[i]-1,sr=pu?ret:0;if(pu){trades++;if(ret>0)wins++}rets.push(sr);eq.push(eq[i]*(1+sr));bh.push(bh[i]*(1+ret))});
+const mr=rets.reduce((a,v)=>a+v)/H,sr=Math.sqrt(rets.reduce((a,v)=>a+(v-mr)**2,0)/H)||1e-9;let pk=0,dd=0;eq.forEach(v=>{pk=Math.max(pk,v);dd=Math.min(dd,v/pk-1)});
+const sent=clamp(50+(rv-50)*.5+mom*500+gauss(rng(seed))*10,8,92),v5=b.slice(-5).reduce((a,k)=>a+k.v,0)/5,v20=b.slice(-20).reduce((a,k)=>a+k.v,0)/20;
+const feats=[['RSI (14)',-(rv-50)/30],['MACD histogram',hist[n-1]/last*200],['Price vs 20-day average',(last/s20[n-1]-1)*10],['Price vs 50-day average',(last/s50[n-1]-1)*6],['Volume trend',(v5/v20-1)*3*Math.sign(last-cl[n-2])],['News sentiment',(sent-50)/40],['Sector momentum',gauss(rng(seed+5))*.5],['Volatility',.3-(bu[n-1]-bl[n-1])/last*4]].map(f=>[f[0],clamp(f[1],-1,1)]);
+const sig=pr>.015?'Buy':pr<-.015?'Sell':'Hold';
+return{b,n,cl,s20,s50,bu,bl,R,macd,sg,hist,fc,pr,last,pred,act,prev,hit,eq,bh,sent,feats,sig,conf:M.conf+Math.round(gauss(rng(seed+9))*3),
+m:{rmse:Math.sqrt(se/H),mae:ae/H,mape:pe/H,r2:1-se/st,dir:(tp+tn)/H},cm:[tp,fp,fn,tn],bt:{ret:eq[H]/100-1,bh:bh[H]/100-1,sharpe:mr/sr*Math.sqrt(252),dd,win:trades?wins/trades:0}}}
+function prep(c){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,r.width,r.height);x.font='11px system-ui,sans-serif';return[x,r.width,r.height]}
+function geo(w){const F=S.fc?10:0,n=A.n,W=S.win,st=n-W,total=W+F,padL=8,padR=58,bw=(w-padL-padR)/total;return{F,n,W,st,total,padL,padR,bw,X:i=>padL+(i-st+.5)*bw}}
+function trace(x,arr,X,Y,a,z,col,wd,dash){x.beginPath();let f=1;for(let i=a;i<z;i++){if(arr[i]==null)continue;f?x.moveTo(X(i),Y(arr[i])):x.lineTo(X(i),Y(arr[i]));f=0}x.strokeStyle=col;x.lineWidth=wd;x.setLineDash(dash||[]);x.stroke();x.setLineDash([])}
+function cross(x,g,h){if(S.hover==null)return;x.strokeStyle=C.mut;x.lineWidth=1;x.setLineDash([3,3]);x.beginPath();x.moveTo(g.X(S.hover),0);x.lineTo(g.X(S.hover),h);x.stroke();x.setLineDash([])}
+function drawMain(){const[x,w,h]=prep($('#main')),g=geo(w),{n,st,bw,X,padL,padR}=g,b=A.b,padT=8,padB=20,vh=S.vol?h*.17:0,ph=h-padT-padB-vh-4;
+let lo=1e18,hi=-1e18;for(let i=st;i<n;i++){lo=Math.min(lo,b[i].l);hi=Math.max(hi,b[i].h);if(S.bb){hi=Math.max(hi,A.bu[i]);lo=Math.min(lo,A.bl[i])}}
+if(S.fc)A.fc.forEach(f=>{hi=Math.max(hi,f.hi);lo=Math.min(lo,f.lo)});const pd=(hi-lo)*.06;hi+=pd;lo-=pd;const Y=v=>padT+(hi-v)/(hi-lo)*ph;
+x.strokeStyle=C.grid;x.fillStyle=C.mut;x.lineWidth=1;for(let k=0;k<=5;k++){const v=lo+(hi-lo)*k/5,y=Y(v);x.beginPath();x.moveTo(padL,y);x.lineTo(w-padR,y);x.stroke();x.fillText(fmt(v,v>100?1:2),w-padR+6,y+4)}
+const step=Math.ceil(g.W/6);for(let i=st;i<n;i+=step)x.fillText(dstr(b[i].d),X(i)-14,h-5);
+if(S.bb){x.beginPath();for(let i=st;i<n;i++)i==st?x.moveTo(X(i),Y(A.bu[i])):x.lineTo(X(i),Y(A.bu[i]));for(let i=n-1;i>=st;i--)x.lineTo(X(i),Y(A.bl[i]));x.closePath();x.fillStyle=C.acc+'1a';x.fill();trace(x,A.bu,X,Y,st,n,C.acc+'66',1);trace(x,A.bl,X,Y,st,n,C.acc+'66',1)}
+if(S.vol){const mx=Math.max(...b.slice(st).map(k=>k.v));for(let i=st;i<n;i++){const k=b[i],v=k.v/mx*vh;x.fillStyle=(k.c>=k.o?C.up:C.dn)+'77';x.fillRect(X(i)-bw*.33,h-padB-v,bw*.66,v)}}
+for(let i=st;i<n;i++){const k=b[i],col=k.c>=k.o?C.up:C.dn,cx=X(i);x.strokeStyle=x.fillStyle=col;x.lineWidth=1;x.beginPath();x.moveTo(cx,Y(k.h));x.lineTo(cx,Y(k.l));x.stroke();x.fillRect(cx-bw*.33,Y(Math.max(k.o,k.c)),Math.max(1,bw*.66),Math.max(1,Math.abs(Y(k.o)-Y(k.c))))}
+if(S.ma){trace(x,A.s20,X,Y,st,n,'#f59e0b',1.5);trace(x,A.s50,X,Y,st,n,'#a855f7',1.5)}
+const lc=b[n-1].c,ly=Y(lc),lcol=lc>=b[n-1].o?C.up:C.dn;x.setLineDash([2,3]);x.strokeStyle=lcol;x.beginPath();x.moveTo(padL,ly);x.lineTo(w-padR,ly);x.stroke();x.setLineDash([]);x.fillStyle=lcol;x.fillRect(w-padR+1,ly-8,padR-2,16);x.fillStyle='#fff';x.fillText(fmt(lc),w-padR+5,ly+4);
+if(S.fc){const f=A.fc,x0=X(n-1),y0=Y(lc),col=A.pr>=0?C.up:C.dn;x.beginPath();x.moveTo(x0,y0);f.forEach((p,k)=>x.lineTo(X(n+k),Y(p.hi)));for(let k=9;k>=0;k--)x.lineTo(X(n+k),Y(f[k].lo));x.closePath();x.fillStyle=col+'2a';x.fill();x.strokeStyle=col;x.lineWidth=2;x.setLineDash([5,4]);x.beginPath();x.moveTo(x0,y0);f.forEach((p,k)=>x.lineTo(X(n+k),Y(p.m)));x.stroke();x.setLineDash([]);
+x.strokeStyle=C.line;x.beginPath();x.moveTo(x0+bw/2,padT);x.lineTo(x0+bw/2,h-padB);x.stroke();x.fillStyle=C.mut;x.fillText('Forecast',x0+bw/2+4,padT+10);x.fillStyle=col;x.font='bold 12px system-ui,sans-serif';x.fillText(pc(A.pr),X(n+9)-36,Y(f[9].m)-8)}
+cross(x,g,h);
+const i=S.hover==null?n-1:S.hover;let t;if(i<n){const k=b[i],p=i?b[i-1].c:k.o;t=`${dstr(k.d)} · O ${fmt(k.o)} H ${fmt(k.h)} L ${fmt(k.l)} C ${fmt(k.c)} <span class="${cls(k.c-p)}">${pc(k.c/p-1)}</span>`}else{const f=A.fc[i-n];t=`Day +${i-n+1} forecast · ${fmt(f.m)} (80% range ${fmt(f.lo)} to ${fmt(f.hi)})`}$('#ohlc').innerHTML=t}
+function drawRSI(){const[x,w,h]=prep($('#rsi')),g=geo(w),Y=v=>6+(100-v)/100*(h-12);x.fillStyle=C.dn+'1f';x.fillRect(g.padL,Y(100),w-g.padL-g.padR,Y(70)-Y(100));x.fillStyle=C.up+'1f';x.fillRect(g.padL,Y(30),w-g.padL-g.padR,Y(0)-Y(30));
+x.strokeStyle=C.line;[30,70].forEach(v=>{x.setLineDash([3,3]);x.beginPath();x.moveTo(g.padL,Y(v));x.lineTo(w-g.padR,Y(v));x.stroke();x.fillStyle=C.mut;x.fillText(v,w-g.padR+6,Y(v)+4)});x.setLineDash([]);
+trace(x,A.R,g.X,Y,g.st,g.n,C.acc,1.8);x.fillStyle=C.mut;x.fillText('RSI 14: '+fmt(A.R[A.n-1],1)+(A.R[A.n-1]>70?' (overbought)':A.R[A.n-1]<30?' (oversold)':''),g.padL+4,14);cross(x,g,h)}
+function drawMACD(){const[x,w,h]=prep($('#macd')),g=geo(w),a=A,m=Math.max(...a.macd.slice(g.st).map(Math.abs),...a.hist.slice(g.st).map(Math.abs))*1.1,Y=v=>6+(m-v)/(2*m)*(h-12);
+x.strokeStyle=C.line;x.beginPath();x.moveTo(g.padL,Y(0));x.lineTo(w-g.padR,Y(0));x.stroke();
+for(let i=g.st;i<g.n;i++){const v=a.hist[i];x.fillStyle=v>=0?C.up:C.dn;x.fillRect(g.X(i)-g.bw*.33,Math.min(Y(0),Y(v)),Math.max(1,g.bw*.66),Math.abs(Y(v)-Y(0)))}
+trace(x,a.macd,g.X,Y,g.st,g.n,C.acc,1.5);trace(x,a.sg,g.X,Y,g.st,g.n,'#f59e0b',1.5);x.fillStyle=C.mut;x.fillText('MACD 12/26/9',g.padL+4,14);cross(x,g,h)}
+function lines(c,series,o={}){const[x,w,h]=prep(c),pl=6,pr=52,pt=8,pb=o.dots?24:18;let lo=1e18,hi=-1e18;series.forEach(s=>s.d.forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v)}));const p=(hi-lo)*.1;lo-=p;hi+=p;const N=series[0].d.length,X=i=>pl+i/(N-1)*(w-pl-pr),Y=v=>pt+(hi-v)/(hi-lo)*(h-pt-pb);
+x.strokeStyle=C.grid;x.fillStyle=C.mut;for(let k=0;k<=3;k++){const v=lo+(hi-lo)*k/3,y=Y(v);x.beginPath();x.moveTo(pl,y);x.lineTo(w-pr,y);x.stroke();x.fillText(fmt(v,v>100?0:1),w-pr+6,y+4)}
+if(o.fill){const d=series[0].d;x.beginPath();x.moveTo(X(0),h-pb);d.forEach((v,i)=>x.lineTo(X(i),Y(v)));x.lineTo(X(N-1),h-pb);x.closePath();x.fillStyle=series[0].col+'22';x.fill()}
+series.forEach(s=>{x.beginPath();s.d.forEach((v,i)=>i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v)));x.strokeStyle=s.col;x.lineWidth=s.w||2;x.setLineDash(s.dash||[]);x.stroke();x.setLineDash([])});
+if(o.dots)o.dots.forEach((ok,i)=>{x.fillStyle=ok?C.up:C.dn;x.beginPath();x.arc(X(i),h-8,2.6,0,6.3);x.fill()});
+x.fillStyle=C.mut;x.fillText(o.l0,pl,h-(o.dots?14:4));x.fillText(o.l1,w-pr-30,h-(o.dots?14:4));series.forEach((s,i)=>{x.fillStyle=s.col;x.fillRect(pl+4+i*105,12-5,10,3);x.fillStyle=C.mut;x.fillText(s.n,pl+18+i*105,14)})}
+function gauge(v){const[x,w,h]=prep($('#gauge')),cx=w/2,cy=h-12,R=Math.min(w/2-14,h-26);x.lineWidth=14;for(let k=0;k<60;k++){x.strokeStyle=`hsl(${k/60*135},68%,48%)`;x.beginPath();x.arc(cx,cy,R,Math.PI+k/60*Math.PI,Math.PI+(k+1)/60*Math.PI+.01);x.stroke()}
+const a=Math.PI+v/100*Math.PI;x.strokeStyle=C.ink;x.lineWidth=3;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+Math.cos(a)*(R-14),cy+Math.sin(a)*(R-14));x.stroke();x.fillStyle=C.ink;x.beginPath();x.arc(cx,cy,6,0,6.3);x.fill();x.fillStyle=C.dn;x.fillText('Bearish',cx-R-8,cy+12);x.fillStyle=C.up;x.fillText('Bullish',cx+R-28,cy+12)}
+function spark(c,d){const[x,w,h]=prep(c),lo=Math.min(...d),hi=Math.max(...d),col=d[d.length-1]>=d[0]?C.up:C.dn;x.beginPath();d.forEach((v,i)=>{const X=i/(d.length-1)*w,Y=2+(hi-v)/(hi-lo)*(h-4);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.strokeStyle=col;x.lineWidth=1.5;x.stroke()}
+const chip=s=>`<span class="chip ${s=='Buy'?'up':s=='Sell'?'dn':'mut'}">${s}</span>`;
+function panels(){const a=A,l=a.b[a.n-1],p=a.b[a.n-2].c,d=l.c/p-1;
+$('#ttl').textContent=S.sym+' · '+SYM[S.sym][4];
+$('#kpis').innerHTML=[['Last price',`${fmt(l.c)}`,`<span class="${cls(d)}">${pc(d)} today</span>`],['10-day target',fmt(a.fc[9].m),`<span class="${cls(a.pr)}">${pc(a.pr)} expected</span>`],['Model signal',chip(a.sig),S.model+' model'],['Confidence',a.conf+'%','Model agreement'],['Direction hit rate',fmt(a.m.dir*100,0)+'%','Last 120 days'],['Day range',fmt(l.l)+' – '+fmt(l.h),'Low to high']].map(k=>`<div class="card kpi"><span>${k[0]}</span><b class="${k[0]=='Last price'?cls(d):''}">${k[1]}</b><span>${k[2]}</span></div>`).join('');
+$('#fct').innerHTML='<tr><th>Horizon<th>Target<th>Change<th>80% range</tr>'+[1,3,5,10].map(k=>{const f=a.fc[k-1],c=f.m/a.last-1;return`<tr><td>Day +${k}<td>${fmt(f.m)}<td class="${cls(c)}">${pc(c)}<td class="mut">${fmt(f.lo,0)} – ${fmt(f.hi,0)}</tr>`}).join('');
+$('#sent').innerHTML=`${fmt(a.sent,0)} <span class="${a.sent>55?'up':a.sent<45?'dn':'mut'}">${a.sent>55?'Bullish':a.sent<45?'Bearish':'Neutral'}</span>`;
+$('#feat').innerHTML=a.feats.map(f=>`<div class="fb"><span>${f[0]}</span><div class="t"><i style="background:${f[1]>=0?'var(--up)':'var(--dn)'};${f[1]>=0?'left:50%;':'right:50%;'}width:${Math.abs(f[1])*50}%"></i></div></div>`).join('');
+const m=a.m;$('#met').innerHTML=[['RMSE',fmt(m.rmse)],['MAE',fmt(m.mae)],['MAPE',fmt(m.mape*100)+'%'],['R² (price)',fmt(m.r2,3)],['Direction',fmt(m.dir*100,1)+'%'],['Hit streak',(()=>{let k=0;for(let i=a.hit.length-1;i>=0&&a.hit[i];i--)k++;return k+' days'})()]].map(k=>`<div><span>${k[0]}</span><b>${k[1]}</b></div>`).join('');
+const[tp,fp,fn,tn]=a.cm,t=(v,g)=>`<div class="c" style="background:color-mix(in srgb,var(${g?'--up':'--dn'}) 22%,transparent)">${v}</div>`;
+$('#cm').innerHTML=`<span></span><span class="mut">Actual up</span><span class="mut">Actual down</span><span class="mut">Called up</span>${t(tp,1)}${t(fp,0)}<span class="mut">Called down</span>${t(fn,0)}${t(tn,1)}`;
+const b=a.bt;$('#bt').innerHTML=[['Strategy',pc(b.ret),cls(b.ret)],['Buy and hold',pc(b.bh),cls(b.bh)],['Sharpe',fmt(b.sharpe),cls(b.sharpe)],['Max drawdown',pc(b.dd),'dn'],['Win rate',fmt(b.win*100,0)+'%',b.win>.5?'up':'dn'],['Edge vs hold',pc(b.ret-b.bh),cls(b.ret-b.bh)]].map(k=>`<div><span>${k[0]}</span><b class="${k[2]}">${k[1]}</b></div>`).join('');
+const day=Math.floor(Date.now()/864e5),sec=['Tech','Semis','Energy','Health','Banks','Retail','Auto','Utilities','Realty','Telecom','Materials','Media'];
+$('#heat').innerHTML=sec.map((s,i)=>{const v=gauss(rng(day*31+i*7))*1.6,al=clamp(Math.abs(v)/3*100,14,80);return`<div class="${i%5==0?'w2':''}" style="background:color-mix(in srgb,var(${v>=0?'--up':'--dn'}) ${al}%,var(--panel))"><span>${s}</span><b>${(v>=0?'+':'')+fmt(v)}%</b></div>`}).join('');
+const rows=Object.keys(SYM).map(s=>{const z=analyze(s,S.model),c=z.b[z.n-1].c/z.b[z.n-2].c-1;return{s,z,c}});
+$('#wl').innerHTML='<tr><th>Symbol<th>Price<th>Day<th>30 days<th>Signal</tr>'+rows.map(r=>`<tr tabindex="0" data-s="${r.s}"><td><b>${r.s}</b><td>${fmt(r.z.last)}<td class="${cls(r.c)}">${pc(r.c)}<td><canvas width="70" height="24" style="width:70px;height:24px;margin-left:auto" data-sp="${r.s}"></canvas><td>${chip(r.z.sig)}</tr>`).join('');
+rows.forEach(r=>spark($(`[data-sp="${r.s}"]`),r.z.cl.slice(-30)))}
+function charts(){colors();drawMain();drawRSI();drawMACD();const a=A,s=a.n-40,H=a.act.length;
+lines($('#pva'),[{d:a.act.slice(-40),col:C.ink,n:'Actual'},{d:a.pred.slice(-40),col:C.acc,n:'Predicted',dash:[5,3]}],{dots:a.hit.slice(-40),l0:dstr(a.b[s].d),l1:dstr(a.b[a.n-1].d)});
+const win=a.bt.ret>=a.bt.bh;lines($('#eq'),[{d:a.eq,col:win?C.up:C.dn,n:'Strategy'},{d:a.bh,col:C.mut,n:'Buy and hold',dash:[4,3],w:1.5}],{fill:1,l0:dstr(a.b[a.n-H].d),l1:dstr(a.b[a.n-1].d)});gauge(a.sent)}
+function render(){A=analyze(S.sym,S.model);panels();charts()}
+function init(){$('#tick').innerHTML=Object.keys(SYM).map(s=>`<button data-s="${s}">${s}</button>`).join('');$('#mod').innerHTML=Object.keys(MODELS).map(m=>`<option>${m}</option>`).join('');
+$('#tf').innerHTML=[['1M',40],['3M',70],['6M',120],['All',200]].map(t=>`<button data-w="${t[1]}">${t[0]}</button>`).join('');
+const mark=()=>{document.querySelectorAll('#tick button').forEach(b=>b.classList.toggle('on',b.dataset.s==S.sym));document.querySelectorAll('#tf button').forEach(b=>b.classList.toggle('on',+b.dataset.w==S.win))};
+document.addEventListener('click',e=>{const t=e.target.closest('[data-s]'),f=e.target.closest('[data-w]');if(t){S.sym=t.dataset.s;S.hover=null}if(f)S.win=+f.dataset.w;if(t||f){mark();render()}});
+document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.dataset&&e.target.dataset.s&&e.target.tagName=='TR')e.target.click()});
+$('#mod').onchange=e=>{S.model=e.target.value;render()};
+[['oma','ma'],['obb','bb'],['ofc','fc'],['ovo','vol']].forEach(([id,k])=>$('#'+id).onchange=e=>{S[k]=e.target.checked?1:0;charts()});
+$('#th').onclick=()=>{const r=document.documentElement,dk=r.dataset.theme?r.dataset.theme=='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dk?'light':'dark';render()};
+['main','rsi','macd'].forEach(id=>{const c=$('#'+id);c.onmousemove=e=>{const r=c.getBoundingClientRect(),g=geo(r.width);S.hover=clamp(g.st+Math.floor((e.clientX-r.left-g.padL)/g.bw),g.st,g.n+g.F-1);drawMain();drawRSI();drawMACD()};c.onmouseleave=()=>{S.hover=null;drawMain();drawRSI();drawMACD()}});
+addEventListener('resize',charts);mark();render();
+setInterval(()=>{const k=gen(S.sym).slice(-1)[0],v=SYM[S.sym][1];k.c*=1+gauss(Math.random)*v*.05;k.h=Math.max(k.h,k.c);k.l=Math.min(k.l,k.c);render()},3000)}
+init();
+</script></body></html>

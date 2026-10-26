@@ -15,6 +15,8 @@ universe:
   start_date: "2015-01-01"
   end_date: null
 
+# Simplified fixed commission assumptions; confirm applicable CSE fees for the study dates.
+
 costs:
   commission_rate_entry: 0.0056
   commission_rate_exit: 0.0056
@@ -23,6 +25,18 @@ costs:
 backtest:
   initial_capital: 1000000
   benchmark: "S&P SL20"
+
+# Walk-forward split parameters are counts of trading observations, not calendar days.
+
+walk_forward:
+  window_type: expanding  # expanding or rolling
+  min_train_days: 504
+  test_days: 63
+  step_days: 21
+  periods_per_year: 252
+  random_seed: 42
+  initial_capital: 1000000
+  round_trip_cost: 0.0112  # fixed project-wide entry/exit costs combined
 
 logging:
   level: INFO
