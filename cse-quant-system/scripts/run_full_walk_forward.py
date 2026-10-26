@@ -1,4 +1,4 @@
-"""Run Phase 3 walk-forward backtest on processed feature CSV files."""
+﻿"""Run Phase 3 walk-forward backtest on processed feature CSV files."""
 from __future__ import annotations
 import logging
 from pathlib import Path

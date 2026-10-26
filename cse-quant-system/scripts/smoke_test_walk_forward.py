@@ -125,20 +125,24 @@ def main() -> None:
     analyzer = PerformanceAnalyzer(periods_per_year=252)
     results = WalkForwardBacktester(smoke_config, analyzer).run(featured)
     paths = analyzer.generate_reports(results, TEST_REPORT_DIR)
+
+    ohlcv_rows = []
+    for symbol, source_frame in data.items():
+        raw = FeatureEngineer._dated(source_frame).reset_index()
+        raw.insert(0, "symbol", symbol)
+        ohlcv_rows.append(raw.rename(columns={"Date": "date", **{c: c.lower() for c in ("Open", "High", "Low", "Close", "Volume")}}))
+    latest_ohlcv = ROOT / "reports" / "latest" / "ohlcv.csv"
+    latest_ohlcv.parent.mkdir(parents=True, exist_ok=True)
+    pd.concat(ohlcv_rows, ignore_index=True).to_csv(latest_ohlcv, index=False)
+    import json
+    metadata_path = ROOT / "reports" / "latest" / "run_metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8")) if metadata_path.is_file() else {}
+    metadata.update({"data_source": source, "symbol_count": len(data),
+                     "rows_min": min(map(len, data.values())), "rows_max": max(map(len, data.values()))})
+    metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+
+
     metrics = results["metrics"]
-
-
-    # Record input provenance for the dashboard data-status panel.
-    latest_metadata = ROOT / "reports" / "latest" / "run_metadata.json"
-    if latest_metadata.is_file():
-        import json
-        metadata = json.loads(latest_metadata.read_text(encoding="utf-8"))
-        metadata["data_source"] = source
-        metadata["symbol_count"] = len(data)
-        metadata["rows_min"] = min(map(len, data.values()))
-        metadata["rows_max"] = max(map(len, data.values()))
-        latest_metadata.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-
     print("Key metrics:")
     print(f"  Total return: {metrics['total_return']:.6f}")
     print(f"  Sharpe ratio: {metrics['sharpe_ratio']:.6f}")
